@@ -28,7 +28,7 @@ public class TimestampConverter implements CustomConverter<SchemaBuilder, Relati
             Map.entry("nov", "11"), Map.entry("dec", "12"));
     public static final int MILLIS_LENGTH = 13;
 
-    // columns of type "date" and "time" have special formats. All others are using the datetime format
+    // Columns of type "date" and "time" have special formats. The rest are using the datetime format
     public static final String DEFAULT_DATETIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
     public static final String DEFAULT_DATE_FORMAT = "YYYY-MM-dd";
     public static final String DEFAULT_TIME_FORMAT = "HH:mm:ss.SSS";

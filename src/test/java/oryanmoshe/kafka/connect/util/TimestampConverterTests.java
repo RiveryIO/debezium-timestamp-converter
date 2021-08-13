@@ -115,13 +115,11 @@ public class TimestampConverterTests {
 
         Object actualResult = mockRegistration._converter.convert(input);
         System.out.println(actualResult);
-        if (actualResult == null) {
-            // Nothing to do - it's already null
-        } else {
-        assertEquals(expectedResult, actualResult,
-                String.format(
-                        "columnType: %s, format: %s, input: %s, actualTimeFormat: %s, actualDateFormat: %s, props: %s",
-                        columnType, format, input, tsConverter.strTimeFormat, tsConverter.strDateFormat, props));
+        if (actualResult != null) {
+            assertEquals(expectedResult, actualResult,
+                    String.format(
+                            "columnType: %s, format: %s, input: %s, actualTimeFormat: %s, actualDateFormat: %s, props: %s",
+                            columnType, format, input, tsConverter.strTimeFormat, tsConverter.strDateFormat, props));
         }
     }
 
