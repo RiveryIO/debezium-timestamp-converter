@@ -86,11 +86,13 @@ public class TimestampConverter implements CustomConverter<SchemaBuilder, Relati
     @Override
     public void converterFor(RelationalColumn column, ConverterRegistration<SchemaBuilder> registration) {
         if (this.debug)
+        {
             System.out.printf(
                     "[TimestampConverter.converterFor] Starting to register column. column.name: %s," +
                             " column.typeName: %s, column.hasDefaultValue: %s, column.defaultValue: %s," +
                             " column.isOptional: %s%n", column.name(), column.typeName(), column.hasDefaultValue(),
                     column.defaultValue(), column.isOptional());
+        }
         if (SUPPORTED_DATA_TYPES.stream().anyMatch(s -> s.equalsIgnoreCase(column.typeName()))) {
             boolean isTime = "time".equalsIgnoreCase(column.typeName());
             // Use a new SchemaBuilder every time in order to avoid changing "Already set" options
@@ -113,9 +115,11 @@ public class TimestampConverter implements CustomConverter<SchemaBuilder, Relati
                 String stringValue = rawValue.toString();
 
                 if (this.debug)
+                {
                     System.out.printf(
                             "[TimestampConverter.converterFor] Before converting. rawValue: %s, isTime: %s",
                             stringValue, isTime);
+                }
 
                 String result;
                 try {
@@ -174,14 +178,19 @@ public class TimestampConverter implements CustomConverter<SchemaBuilder, Relati
 
     private String convertMillisToDateTimeString(RelationalColumn column, String rawValue, Long millis) {
         if (millis == null)
+        {
             return rawValue;
+        }
 
         Instant instant = Instant.ofEpochMilli(millis);
         Date dateObject = Date.from(instant);
         if (this.debug)
+        {
             System.out.printf(
                     "[TimestampConverter.converterFor] Before returning conversion. column.name: %s, column.typeName: %s, millis: %d%n",
                     column.name(), column.typeName(), millis);
+        }
+
         SimpleDateFormat formatter = getFormatterPerColumnType(column);
         return formatter.format(dateObject);
     }
