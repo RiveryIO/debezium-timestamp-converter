@@ -36,10 +36,14 @@ public class TimestampConverter implements CustomConverter<SchemaBuilder, Relati
     public static final List<String> SUPPORTED_DATA_TYPES = List.of("date", "time", "datetime", "timestamp",
             "datetime2");
 
-    public static final String SUPPORTED_FORMATS = "[yyyy-MM-dd HH:mm:ss.SSSSSS]" + // ORDERING IS IMPORTANT
+    public static final String SUPPORTED_FORMATS = // ORDERING IS IMPORTANT
+            "[yyyy-MM-dd HH:mm:ss.SSSSSS]" +
             "[yyyy-M-dd HH:mm:ss.SSSSSS]" +
             "[yyyy-M-dd H:m:s.SSSSSS]" +
             "[yyyy-MM-dd HH:mm:ss]" +
+            "[yyyy-MM-dd HH:mm:ss.S]" +
+            "[yyyy-MM-dd'T'HH:mm:ss.S]" +
+            "[yyyy-MM-dd'T'HH:mm:ss]" +
             "[yyyy-M-dd HH:mm:ss]" +
             "[dd/MM/yyyy HH:mm:ss.SSSSSS]" +
             "[dd-LLL-yyyy HH:mm:ss.SSSSSS]" +
@@ -53,6 +57,7 @@ public class TimestampConverter implements CustomConverter<SchemaBuilder, Relati
                     .parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
                     .parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
                     .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0)
+                    .appendFraction(ChronoField.MILLI_OF_SECOND, 1, 6, true)
                     .toFormatter();
 
     public String strDatetimeFormat, strDateFormat, strTimeFormat;
@@ -130,8 +135,9 @@ public class TimestampConverter implements CustomConverter<SchemaBuilder, Relati
                             "[TimestampConverter.converterFor] ERROR! Using regex for conversion. rawValue: %s, " +
                                     "isTime: %s", stringValue, isTime);
                     // Using the legacy regex
-                     long millis = milliFromDateString(stringValue);
-                     result = convertMillisToDateTimeString(column, stringValue, millis);
+//                     long millis = milliFromDateString(stringValue);
+//                     result = convertMillisToDateTimeString(column, stringValue, millis);
+                    result = "bla";
                 }
                 return result;
             });
