@@ -26,7 +26,6 @@ public class TimestampConverter implements CustomConverter<SchemaBuilder, Relati
             Map.entry("jul", "07"), Map.entry("aug", "08"), Map.entry("sep", "09"),
             Map.entry("oct", "10"),
             Map.entry("nov", "11"), Map.entry("dec", "12"));
-    public static final int MILLIS_LENGTH = 13;
 
     // Columns of type "date" and "time" have special formats. The rest are using the datetime format
     public static final String DEFAULT_DATETIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
@@ -36,23 +35,45 @@ public class TimestampConverter implements CustomConverter<SchemaBuilder, Relati
     public static final List<String> SUPPORTED_DATA_TYPES = List.of("date", "time", "datetime", "timestamp",
             "datetime2");
 
-    public static final String SUPPORTED_FORMATS = "[yyyy-MM-dd HH:mm:ss.SSSSSS]" + // ORDERING IS IMPORTANT
-            "[yyyy-M-dd HH:mm:ss.SSSSSS]" +
-            "[yyyy-M-dd H:m:s.SSSSSS]" +
-            "[yyyy-MM-dd HH:mm:ss]" +
-            "[yyyy-M-dd HH:mm:ss]" +
-            "[dd/MM/yyyy HH:mm:ss.SSSSSS]" +
-            "[dd-LLL-yyyy HH:mm:ss.SSSSSS]" +
-            "[yyyy-M-dd HH:mm]" +
-            "[yyyy-MM-dd]" +
-            "[yyyy-M-dd]" +
-            "[HH:mm:ss]";
+    public static final String SUPPORTED_FORMATS = // ORDERING IS IMPORTANT
+            new StringBuilder()
+                    .append("[yyyy-MM-dd HH:mm:ss.SSSSSS]")
+                    .append("[yyyy-M-dd HH:mm:ss.SSSSSS]")
+                    .append("[yyyy-M-dd H:m:s.SSSSSS]")
+                    .append("[yyyy-MM-dd HH:mm:ss]")
+                    .append("[yyyy-MM-dd HH:mm:ss.S]")
+                    .append("[yyyy-MM-dd'T'HH:mm:ss.S]")
+                    .append("[yyyy-MM-dd'T'HH:mm:ss]")
+                    .append("[yyyy-M-dd HH:mm:ss]")
+                    .append("[dd/MM/yyyy HH:mm:ss.SSSSSS]")
+                    .append("[dd-LLL-yyyy HH:mm:ss.SSSSSS]")
+                    .append("[yyyy-MM-dd]")
+                    .append("[yyyy-M-dd]")
+                    .append("[HH:mm:ss]")
+                    .toString();
+
+    // Unique formats are formats without "ss" - we first check the first formatter and fallback to this one
+    public static final String UNIQUE_FORMATS = // ORDERING IS IMPORTANT
+            new StringBuilder()
+
+                    .append("[yyyy-M-dd HH:mm]")
+                    .append("[yyyy-M-dd'T'HH:mm]")
+                    .append("[yyyy-MM-dd HH:mm]")
+                    .append("[yyyy-MM-dd'T'HH:mm]")
+                    .append("[HH:mm]")
+                    .toString();
+
 
     final DateTimeFormatter source_format =
             new DateTimeFormatterBuilder().appendPattern(SUPPORTED_FORMATS)
                     .parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
                     .parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
                     .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0)
+                    .appendFraction(ChronoField.MILLI_OF_SECOND, 1, 6, true)
+                    .toFormatter();
+
+    final DateTimeFormatter unique_source_format =
+            new DateTimeFormatterBuilder().appendPattern(UNIQUE_FORMATS)
                     .toFormatter();
 
     public String strDatetimeFormat, strDateFormat, strTimeFormat;
@@ -130,8 +151,8 @@ public class TimestampConverter implements CustomConverter<SchemaBuilder, Relati
                             "[TimestampConverter.converterFor] ERROR! Using regex for conversion. rawValue: %s, " +
                                     "isTime: %s", stringValue, isTime);
                     // Using the legacy regex
-                     long millis = milliFromDateString(stringValue);
-                     result = convertMillisToDateTimeString(column, stringValue, millis);
+                    long millis = milliFromDateString(stringValue);
+                    result = convertMillisToDateTimeString(column, stringValue, millis);
                 }
                 return result;
             });
@@ -144,27 +165,36 @@ public class TimestampConverter implements CustomConverter<SchemaBuilder, Relati
 
         try {
             result = source_format.parse(rawValue);
-        } catch (DateTimeParseException dtpx) {
-            // StringUtils is part of the apache commons lang3 library. Instead of strings,
-            // we can always just filter by numeric value range
-            if (StringUtils.isNumeric(rawValue)) {
-                int length = rawValue.length();
-                long numeric = Long.parseLong(rawValue);
-                if (length == 5) { // Epoch Days
-                    result = LocalDate.ofEpochDay(numeric);
-                } else if (length == 10) { // Epoch Seconds
-                    result = Instant.ofEpochSecond(numeric);
-                    result = LocalDateTime.ofInstant((Instant) result, ZoneOffset.UTC);
-                } else if (length == 13) { // Epoch Millis
-                    result = Instant.ofEpochMilli(numeric);
-                    result = LocalDateTime.ofInstant((Instant) result, ZoneOffset.UTC);
-                } else if (column.typeName() == "time") { // time is milliseconds
-                    Long nanoseconds = numeric * 1000000; // milli to nano
-                    result = LocalTime.ofNanoOfDay(nanoseconds);
+        } catch (DateTimeParseException e) {
+            try {
+                // This is a fallback to another formatter for unique formats
+                result = unique_source_format.parse(rawValue);
+            }
+            catch (DateTimeParseException dtpx){
+                // StringUtils is part of the apache commons lang3 library. Instead of strings,
+                // we can always just filter by numeric value range
+                if (StringUtils.isNumeric(rawValue)) {
+                    int length = rawValue.length();
+                    long numeric = Long.parseLong(rawValue);
+                    if (length == 5) { // Epoch Days
+                        result = LocalDate.ofEpochDay(numeric);
+                    } else if (length == 10) { // Epoch Seconds
+                        result = Instant.ofEpochSecond(numeric);
+                        result = LocalDateTime.ofInstant((Instant) result, ZoneOffset.UTC);
+                    } else if (length == 13) { // Epoch Millis
+                        result = Instant.ofEpochMilli(numeric);
+                        result = LocalDateTime.ofInstant((Instant) result, ZoneOffset.UTC);
+                    } else if (column.typeName() == "time") { // time is milliseconds
+                        Long nanoseconds = numeric * 1000000; // milli to nano
+                        result = LocalTime.ofNanoOfDay(nanoseconds);
+                    }
+                }
+                if (result == null) {
+                    throw dtpx;
                 }
             }
             if (result == null) {
-                throw dtpx;
+                throw e;
             }
         }
         SimpleDateFormat formatter = getFormatterPerColumnType(column);
@@ -209,7 +239,7 @@ public class TimestampConverter implements CustomConverter<SchemaBuilder, Relati
     // LEGACY METHOD
     private Long milliFromDateString(String timestamp) {
         // The regex is only for unknown patterns
-        final String DATETIME_REGEX = "(?<datetime>(?<date>(?:(?<year>\\d{4})-(?<month>\\d{1,2})-(?<day>\\d{1,2}))|(?:(?<day2>\\d{1,2})\\/(?<month2>\\d{1,2})\\/(?<year2>\\d{4}))|(?:(?<day3>\\d{1,2})-(?<month3>\\w{3})-(?<year3>\\d{4})))?(?:\\s?T?(?<time>(?<hour>\\d{1,2}):?(?<minute>\\d{1,2}):?(?<second>\\d{1,2})\\.?(?<milli>\\d{0,7})?)?))";
+        final String DATETIME_REGEX = "(?<datetime>(?<date>(?:(?<year>\\d{4})-(?<month>\\d{1,2})-(?<day>\\d{1,2}))|(?:(?<day2>\\d{1,2})\\/(?<month2>\\d{1,2})\\/(?<year2>\\d{4}))|(?:(?<day3>\\d{1,2})-(?<month3>\\w{3})-(?<year3>\\d{4})))?(?:\\s?T?(?<time>(?<hour>\\d{1,2}):(?<minute>\\d{1,2}):(?<second>\\d{1,2})\\.?(?<milli>\\d{0,7})?)?))";
         final Pattern regexPattern = Pattern.compile(DATETIME_REGEX);
 
         Matcher matches = regexPattern.matcher(timestamp);
