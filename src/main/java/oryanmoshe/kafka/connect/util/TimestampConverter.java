@@ -135,9 +135,8 @@ public class TimestampConverter implements CustomConverter<SchemaBuilder, Relati
                             "[TimestampConverter.converterFor] ERROR! Using regex for conversion. rawValue: %s, " +
                                     "isTime: %s", stringValue, isTime);
                     // Using the legacy regex
-//                     long millis = milliFromDateString(stringValue);
-//                     result = convertMillisToDateTimeString(column, stringValue, millis);
-                    result = "bla";
+                    long millis = milliFromDateString(stringValue);
+                    result = convertMillisToDateTimeString(column, stringValue, millis);
                 }
                 return result;
             });
