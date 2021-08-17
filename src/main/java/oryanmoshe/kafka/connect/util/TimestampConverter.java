@@ -43,13 +43,10 @@ public class TimestampConverter implements CustomConverter<SchemaBuilder, Relati
                     // DO NOT (!!!!) Add any ".S" here - we are adding it dynamically in the formatter
                     .append("[yyyy-MM-dd HH:mm:ss]")
                     .append("[yyyy-MM-dd'T'HH:mm:ss]")
-                    .append("[yyyy-MM-dd'T'HH:mm:ss'Z']")
                     .append("[yyyy-M-dd H:m:s]")
                     .append("[yyyy-M-dd'T'H:m:s]")
-                    .append("[yyyy-M-dd'T'H:m:s'Z']")
                     .append("[yyyy-M-dd HH:mm:ss]")
                     .append("[yyyy-M-dd'T'HH:mm:ss]")
-                    .append("[yyyy-M-dd'T'HH:mm:ss'Z']")
                     .append("[dd/MM/yyyy HH:mm:ss]")
                     .append("[dd-LLL-yyyy HH:mm:ss]")
                     .toString();
