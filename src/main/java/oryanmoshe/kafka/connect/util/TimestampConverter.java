@@ -17,8 +17,6 @@ import java.util.regex.Pattern;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.commons.lang3.StringUtils;
 
-import javax.ws.rs.core.Form;
-
 public class TimestampConverter implements CustomConverter<SchemaBuilder, RelationalColumn> {
 
     private static final Map<String, String> MONTH_MAP = Map.ofEntries(Map.entry("jan", "01"),
