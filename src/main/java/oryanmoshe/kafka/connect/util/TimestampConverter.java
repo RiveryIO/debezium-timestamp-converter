@@ -156,7 +156,6 @@ public class TimestampConverter implements CustomConverter<SchemaBuilder, Relati
                     // Using the legacy regex
                     long millis = milliFromDateString(stringValue);
                     result = convertMillisToDateTimeString(column, stringValue, millis);
-                    result = "bla";
                 }
                 return result;
             });
