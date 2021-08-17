@@ -35,25 +35,21 @@ public class TimestampConverter implements CustomConverter<SchemaBuilder, Relati
     public static final List<String> SUPPORTED_DATA_TYPES = List.of("date", "time", "datetime", "timestamp",
             "datetime2");
 
-    public static final String SUPPORTED_FORMATS = // ORDERING IS IMPORTANT
+    // Building the formats array
+    public static DateTimeFormatter[] FORMATS = new DateTimeFormatter[4];
+
+    public static final String GENERAL_FORMATS = // ORDERING IS IMPORTANT
             new StringBuilder()
-                    .append("[yyyy-MM-dd HH:mm:ss.SSSSSS]")
-                    .append("[yyyy-M-dd HH:mm:ss.SSSSSS]")
-                    .append("[yyyy-M-dd H:m:s.SSSSSS]")
+                    // DO NOT (!!!!) Add any ".S" here - we are adding it dynamically in the formatter
                     .append("[yyyy-MM-dd HH:mm:ss]")
-                    .append("[yyyy-MM-dd HH:mm:ss.S]")
-                    .append("[yyyy-MM-dd'T'HH:mm:ss.S]")
                     .append("[yyyy-MM-dd'T'HH:mm:ss]")
+                    .append("[yyyy-M-dd H:m:s]")
                     .append("[yyyy-M-dd HH:mm:ss]")
-                    .append("[dd/MM/yyyy HH:mm:ss.SSSSSS]")
-                    .append("[dd-LLL-yyyy HH:mm:ss.SSSSSS]")
-                    .append("[yyyy-MM-dd]")
-                    .append("[yyyy-M-dd]")
-                    .append("[HH:mm:ss]")
+                    .append("[dd/MM/yyyy HH:mm:ss]")
+                    .append("[dd-LLL-yyyy HH:mm:ss]")
                     .toString();
 
-    // Unique formats are formats without "ss" - we first check the first formatter and fallback to this one
-    public static final String UNIQUE_FORMATS = // ORDERING IS IMPORTANT
+    public static final String NO_SECONDS_FORMATS = // ORDERING IS IMPORTANT
             new StringBuilder()
 
                     .append("[yyyy-M-dd HH:mm]")
@@ -63,18 +59,12 @@ public class TimestampConverter implements CustomConverter<SchemaBuilder, Relati
                     .append("[HH:mm]")
                     .toString();
 
-
-    final DateTimeFormatter source_format =
-            new DateTimeFormatterBuilder().appendPattern(SUPPORTED_FORMATS)
-                    .parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
-                    .parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
-                    .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0)
-                    .appendFraction(ChronoField.MILLI_OF_SECOND, 1, 6, true)
-                    .toFormatter();
-
-    final DateTimeFormatter unique_source_format =
-            new DateTimeFormatterBuilder().appendPattern(UNIQUE_FORMATS)
-                    .toFormatter();
+    public static final String NO_TIME_FORMATS = // ORDERING IS IMPORTANT
+            new StringBuilder()
+                    .append("[yyyy-MM-dd]")
+                    .append("[yyyy-M-dd]")
+                    .append("[HH:mm:ss]")
+                    .toString();
 
     public String strDatetimeFormat, strDateFormat, strTimeFormat;
     public Boolean debug;
@@ -83,6 +73,8 @@ public class TimestampConverter implements CustomConverter<SchemaBuilder, Relati
 
     @Override
     public void configure(Properties props) {
+        BuildFormatsParsers();
+        
         this.strDatetimeFormat = props.getProperty("format.datetime", DEFAULT_DATETIME_FORMAT);
         this.simpleDatetimeFormatter = new SimpleDateFormat(this.strDatetimeFormat);
 
@@ -102,6 +94,17 @@ public class TimestampConverter implements CustomConverter<SchemaBuilder, Relati
                     "[TimestampConverter.configure] Finished configuring formats." +
                             " this.strDatetimeFormat: %s, this.strTimeFormat: %s%n",
                     this.strDatetimeFormat, this.strTimeFormat);
+    }
+
+    private void BuildFormatsParsers() {
+        FORMATS[0] = new DateTimeFormatterBuilder().appendPattern(GENERAL_FORMATS).toFormatter();
+
+        FORMATS[1] = new DateTimeFormatterBuilder().appendPattern(GENERAL_FORMATS)
+                .appendFraction(ChronoField.MILLI_OF_SECOND, 1, 6, true).toFormatter();
+
+        FORMATS[2] = new DateTimeFormatterBuilder().appendPattern(NO_SECONDS_FORMATS).toFormatter();
+
+        FORMATS[3] = new DateTimeFormatterBuilder().appendPattern(NO_TIME_FORMATS).toFormatter();
     }
 
     @Override
@@ -153,50 +156,53 @@ public class TimestampConverter implements CustomConverter<SchemaBuilder, Relati
                     // Using the legacy regex
                     long millis = milliFromDateString(stringValue);
                     result = convertMillisToDateTimeString(column, stringValue, millis);
+                    result = "bla";
                 }
                 return result;
             });
         }
     }
 
-    private String GetDateTimeFormat(String rawValue, RelationalColumn column) {
+    private String GetDateTimeFormat(String rawValue, RelationalColumn column) throws Exception {
         TemporalAccessor result = null;
         String output;
 
-        try {
-            result = source_format.parse(rawValue);
-        } catch (DateTimeParseException e) {
+        boolean succeeded = false;
+        for (DateTimeFormatter formatter : FORMATS) {
             try {
-                // This is a fallback to another formatter for unique formats
-                result = unique_source_format.parse(rawValue);
+                result = formatter.parse(rawValue);
+                succeeded = true;
+                // If we succeed - we break the loop
+                break;
             }
             catch (DateTimeParseException dtpx){
-                // StringUtils is part of the apache commons lang3 library. Instead of strings,
-                // we can always just filter by numeric value range
-                if (StringUtils.isNumeric(rawValue)) {
-                    int length = rawValue.length();
-                    long numeric = Long.parseLong(rawValue);
-                    if (length == 5) { // Epoch Days
-                        result = LocalDate.ofEpochDay(numeric);
-                    } else if (length == 10) { // Epoch Seconds
-                        result = Instant.ofEpochSecond(numeric);
-                        result = LocalDateTime.ofInstant((Instant) result, ZoneOffset.UTC);
-                    } else if (length == 13) { // Epoch Millis
-                        result = Instant.ofEpochMilli(numeric);
-                        result = LocalDateTime.ofInstant((Instant) result, ZoneOffset.UTC);
-                    } else if (column.typeName() == "time") { // time is milliseconds
-                        Long nanoseconds = numeric * 1000000; // milli to nano
-                        result = LocalTime.ofNanoOfDay(nanoseconds);
-                    }
-                }
-                if (result == null) {
-                    throw dtpx;
-                }
-            }
-            if (result == null) {
-                throw e;
+                continue;
             }
         }
+        if (!succeeded){
+            // StringUtils is part of the apache commons lang3 library. Instead of strings,
+            // we can always just filter by numeric value range
+            if (StringUtils.isNumeric(rawValue)) {
+                int length = rawValue.length();
+                long numeric = Long.parseLong(rawValue);
+                if (length == 5) { // Epoch Days
+                    result = LocalDate.ofEpochDay(numeric);
+                } else if (length == 10) { // Epoch Seconds
+                    result = Instant.ofEpochSecond(numeric);
+                    result = LocalDateTime.ofInstant((Instant) result, ZoneOffset.UTC);
+                } else if (length == 13) { // Epoch Millis
+                    result = Instant.ofEpochMilli(numeric);
+                    result = LocalDateTime.ofInstant((Instant) result, ZoneOffset.UTC);
+                } else if (column.typeName() == "time") { // time is milliseconds
+                    Long nanoseconds = numeric * 1000000; // milli to nano
+                    result = LocalTime.ofNanoOfDay(nanoseconds);
+                }
+            }
+        }
+        if (result == null) {
+            throw new Exception(String.format("Failed to parsed value: {}", rawValue));
+        }
+
         SimpleDateFormat formatter = getFormatterPerColumnType(column);
         DateTimeFormatter target_format = DateTimeFormatter.ofPattern(formatter.toPattern(), Locale.ENGLISH);
         output = target_format.format(result);
