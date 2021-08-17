@@ -45,7 +45,11 @@ public class TimestampConverter implements CustomConverter<SchemaBuilder, Relati
                     .append("[yyyy-MM-dd'T'HH:mm:ss]")
                     .append("[yyyy-MM-dd'T'HH:mm:ss'Z']")
                     .append("[yyyy-M-dd H:m:s]")
+                    .append("[yyyy-M-dd'T'H:m:s]")
+                    .append("[yyyy-M-dd'T'H:m:s'Z']")
                     .append("[yyyy-M-dd HH:mm:ss]")
+                    .append("[yyyy-M-dd'T'HH:mm:ss]")
+                    .append("[yyyy-M-dd'T'HH:mm:ss'Z']")
                     .append("[dd/MM/yyyy HH:mm:ss]")
                     .append("[dd-LLL-yyyy HH:mm:ss]")
                     .toString();
@@ -98,10 +102,20 @@ public class TimestampConverter implements CustomConverter<SchemaBuilder, Relati
     }
 
     private void BuildFormatsParsers() {
-        FORMATS[0] = new DateTimeFormatterBuilder().appendPattern(GENERAL_FORMATS).toFormatter();
+        FORMATS[0] = new DateTimeFormatterBuilder()
+                .appendPattern(GENERAL_FORMATS)
+                .optionalStart()
+                .appendLiteral('Z')
+                .optionalEnd()
+                .toFormatter();
 
-        FORMATS[1] = new DateTimeFormatterBuilder().appendPattern(GENERAL_FORMATS)
-                .appendFraction(ChronoField.MILLI_OF_SECOND, 1, 6, true).toFormatter();
+        FORMATS[1] = new DateTimeFormatterBuilder()
+                .appendPattern(GENERAL_FORMATS)
+                .appendFraction(ChronoField.MILLI_OF_SECOND, 1, 6, true)
+                .optionalStart()
+                .appendLiteral('Z')
+                .optionalEnd()
+                .toFormatter();
 
         FORMATS[2] = new DateTimeFormatterBuilder().appendPattern(NO_SECONDS_FORMATS).toFormatter();
 
