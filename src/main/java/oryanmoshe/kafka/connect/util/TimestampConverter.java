@@ -17,6 +17,8 @@ import java.util.regex.Pattern;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.commons.lang3.StringUtils;
 
+import javax.ws.rs.core.Form;
+
 public class TimestampConverter implements CustomConverter<SchemaBuilder, RelationalColumn> {
 
     private static final Map<String, String> MONTH_MAP = Map.ofEntries(Map.entry("jan", "01"),
@@ -36,7 +38,7 @@ public class TimestampConverter implements CustomConverter<SchemaBuilder, Relati
             "datetime2");
 
     // Building the formats array
-    public static DateTimeFormatter[] FORMATS = new DateTimeFormatter[4];
+    public static DateTimeFormatter[] FORMATS = new DateTimeFormatter[5];
 
     public static final String GENERAL_FORMATS = // ORDERING IS IMPORTANT
             new StringBuilder()
@@ -117,6 +119,14 @@ public class TimestampConverter implements CustomConverter<SchemaBuilder, Relati
         FORMATS[2] = new DateTimeFormatterBuilder().appendPattern(NO_SECONDS_FORMATS).toFormatter();
 
         FORMATS[3] = new DateTimeFormatterBuilder().appendPattern(NO_TIME_FORMATS).toFormatter();
+
+        FORMATS[4] = new DateTimeFormatterBuilder()
+                .appendPattern(GENERAL_FORMATS)
+                .optionalStart()
+                .appendLiteral(',')
+                .optionalEnd()
+                .appendPattern("[SSSSSSSSS][SSSSSS][SSSS][SSS]")
+                .toFormatter();
     }
 
     @Override
@@ -168,6 +178,7 @@ public class TimestampConverter implements CustomConverter<SchemaBuilder, Relati
                     // Using the legacy regex
                     long millis = milliFromDateString(stringValue);
                     result = convertMillisToDateTimeString(column, stringValue, millis);
+                    result = "bla";
                 }
                 return result;
             });
