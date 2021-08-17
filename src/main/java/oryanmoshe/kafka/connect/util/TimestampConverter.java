@@ -108,7 +108,7 @@ public class TimestampConverter implements CustomConverter<SchemaBuilder, Relati
 
         FORMATS[1] = new DateTimeFormatterBuilder()
                 .appendPattern(GENERAL_FORMATS)
-                .appendFraction(ChronoField.MILLI_OF_SECOND, 1, 6, true)
+                .appendFraction(ChronoField.MILLI_OF_SECOND, 1, 9, true)
                 .optionalStart()
                 .appendLiteral('Z')
                 .optionalEnd()
@@ -187,17 +187,20 @@ public class TimestampConverter implements CustomConverter<SchemaBuilder, Relati
         String output;
 
         boolean succeeded = false;
-        for (DateTimeFormatter formatter : FORMATS) {
-            try {
-                result = formatter.parse(rawValue);
-                succeeded = true;
-                // If we succeed - we break the loop
-                break;
-            }
-            catch (DateTimeParseException dtpx){
-                continue;
+        if (!StringUtils.isNumeric(rawValue)){
+            for (DateTimeFormatter formatter : FORMATS) {
+                try {
+                    result = formatter.parse(rawValue);
+                    succeeded = true;
+                    // If we succeed - we break the loop
+                    break;
+                }
+                catch (DateTimeParseException dtpx){
+                    continue;
+                }
             }
         }
+
         if (!succeeded){
             // StringUtils is part of the apache commons lang3 library. Instead of strings,
             // we can always just filter by numeric value range
