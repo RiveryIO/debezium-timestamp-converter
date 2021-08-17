@@ -1,6 +1,7 @@
 package oryanmoshe.kafka.connect.util;
 
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -88,6 +89,7 @@ public class TimestampConverterTests {
             "datetime,, 2019-4-19 15:13:20.345123, 2019-04-19T15:13:20.345Z",
             "datetime,, 2021-08-17T08:38:41Z, 2021-08-17T08:38:41.000Z",
             "datetime,, 2019-4-19 15:13:20.34512, 2019-04-19T15:13:20.345Z",
+            "datetime,, 2021-08-17 09:38:23.3615532, 2021-08-17T09:38:23.361Z",
             "datetime,, 2019-4-19 15:13:00, 2019-04-19T15:13:00.000Z",
             "datetime,, 2019-4-19 15:13, 2019-04-19T15:13:00.000Z",
             "datetime,, 2021-8-16 12:48:00, 2021-08-16T12:48:00.000Z",
@@ -107,12 +109,32 @@ public class TimestampConverterTests {
     void converterTest(final String columnType, final String format, final String input, final String expectedResult) {
         final TimestampConverter tsConverter = new TimestampConverter();
 
+        TestFormat(columnType, format, input, expectedResult, tsConverter);
+    }
+
+    // Testing unique (as "," formats)
+    @Test
+    void uniqueConverterTest() {
+        final TimestampConverter tsConverter = new TimestampConverter();
+
+        var columnType = "datetime";
+        String format = null;
+        var input="2021-08-17 08:50:11,240";
+        var expectedResult = "2021-08-17T08:50:11.240Z";
+
+        TestFormat(columnType, format, input, expectedResult, tsConverter);
+    }
+
+    private void TestFormat(String columnType, String format, String input, String expectedResult, TimestampConverter tsConverter) {
         Properties props = new Properties();
         if (format != null)
+        {
             props.put(
                     String.format("format.%s",
                             columnType.equals("timestamp") || columnType.equals("datetime2") ? "datetime" : columnType),
                     format);
+        }
+
         props.put("debug", "true");
         tsConverter.configure(props);
 
