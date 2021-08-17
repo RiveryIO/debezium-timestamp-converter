@@ -43,6 +43,7 @@ public class TimestampConverter implements CustomConverter<SchemaBuilder, Relati
                     // DO NOT (!!!!) Add any ".S" here - we are adding it dynamically in the formatter
                     .append("[yyyy-MM-dd HH:mm:ss]")
                     .append("[yyyy-MM-dd'T'HH:mm:ss]")
+                    .append("[yyyy-MM-dd'T'HH:mm:ss'Z']")
                     .append("[yyyy-M-dd H:m:s]")
                     .append("[yyyy-M-dd HH:mm:ss]")
                     .append("[dd/MM/yyyy HH:mm:ss]")
