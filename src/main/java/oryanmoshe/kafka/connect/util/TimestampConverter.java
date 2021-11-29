@@ -116,7 +116,12 @@ public class TimestampConverter implements CustomConverter<SchemaBuilder, Relati
 
         FORMATS[2] = new DateTimeFormatterBuilder().appendPattern(NO_SECONDS_FORMATS).toFormatter();
 
-        FORMATS[3] = new DateTimeFormatterBuilder().appendPattern(NO_TIME_FORMATS).toFormatter();
+        FORMATS[3] = new DateTimeFormatterBuilder()
+            .appendPattern(NO_TIME_FORMATS)
+            .optionalStart()
+            .appendLiteral('Z')
+            .optionalEnd()
+            .toFormatter();
 
         FORMATS[4] = new DateTimeFormatterBuilder()
                 .appendPattern(GENERAL_FORMATS)

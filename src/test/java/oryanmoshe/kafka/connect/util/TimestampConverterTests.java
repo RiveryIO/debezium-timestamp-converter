@@ -71,6 +71,8 @@ public class TimestampConverterTests {
     @CsvSource({
             "date, YYYY-MM-dd, 18368, 2020-04-16",
             "date,, 18368, 2020-04-16",
+            "date,, 2021-11-21Z, 2021-11-21",
+            "date, YYYY-MM-dd, 2021-11-21Z, 2021-11-21",
             "time, mm:ss.SSS, 2230, 00:02.230",
             "time,, 2230, 00:00:02.230",
             "datetime, YYYY-MM-dd, 1587042000279, 2020-04-16",
